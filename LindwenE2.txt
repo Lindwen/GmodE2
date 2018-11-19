@@ -5,12 +5,10 @@
 @trigger
 interval(1)
 
-
 Time+=2
 Time2+=2
 Ang++
 I++
-
 
 if(first()) {
     runOnLast(1)
@@ -19,13 +17,10 @@ if(first()) {
     holoAlpha(0,0)
     holoEntity(0):setTrails(5,5,5,"trails/smoke",vec(255,255,255),255)
 }
-
 holoPos(0,owner():pos() + vec(0,0,50))
-
 if(first()) {
     owner():removeTrails()
 }
-
 
 holoCreate(1,vec(0,0,0))
 holoParent(1,entity())
@@ -37,7 +32,6 @@ holoMaterial(1,"models/debug/debugwhite")
 holoAng(1,ang(0,0,180))
 holoColor(1,hsv2rgb(I%360,1,1))
 holoDisableShading(1,1)
-
 
 holoCreate(2,vec(0,0,0))
 holoParent(2,entity())
@@ -63,7 +57,6 @@ holoColor(3,hsv2rgb(I%360,1,1))
 holoAng(3,entity():eyeAngles()+ang(Ang,90,0))
 holoDisableShading(3,1)
 
-
 holoCreate(4,vec(0,0,0))
 holoParent(4,entity())
 holoModel(4,"models/hunter/tubes/tube4x4x025.mdl")
@@ -87,7 +80,6 @@ holoAng(5,ang(0,0,180))
 holoColor(5,hsv2rgb(I%360,1,1))
 holoAng(5,entity():eyeAngles()+ang(Ang,270,0))
 holoDisableShading(5,1)
-
 
 holoCreate(13) 
 holoPos(13, owner():attachmentPos("eyes")) 
@@ -134,7 +126,6 @@ holoScale(17,vec(1.8,1.8,1.8))
 holoColor(17,vec(255,255,255))
 holoParent(17,13)
 holoDisableShading(17,1)
-
 
 owner():setMaterial("models/debug/debugwhite")
 
