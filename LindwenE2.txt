@@ -1,0 +1,140 @@
+@name LindwenE2
+@inputs 
+@outputs 
+@persist Time Time2 Ang I
+@trigger
+interval(1)
+
+
+Time+=2
+Time2+=2
+Ang++
+I++
+
+
+if(first()) {
+    runOnLast(1)
+    
+    holoCreate(0)
+    holoAlpha(0,0)
+    holoEntity(0):setTrails(5,5,5,"trails/smoke",vec(255,255,255),255)
+}
+
+holoPos(0,owner():pos() + vec(0,0,50))
+
+if(first()) {
+    owner():removeTrails()
+}
+
+
+holoCreate(1,vec(0,0,0))
+holoParent(1,entity())
+holoModel(1,"models/hunter/tubes/circle4x4.mdl")
+holoPos(1,owner():pos()+vec(0,0,0))
+holoScale(1,vec(1,1,1))
+holoAlpha(1,255)
+holoMaterial(1,"models/debug/debugwhite")
+holoAng(1,ang(0,0,180))
+holoColor(1,hsv2rgb(I%360,1,1))
+holoDisableShading(1,1)
+
+
+holoCreate(2,vec(0,0,0))
+holoParent(2,entity())
+holoModel(2,"models/hunter/tubes/tube2x2x025.mdl")
+holoPos(2,owner():pos()+vec(0,0,50))
+holoScale(2,vec(1,1,1))
+holoAlpha(2,255)
+holoMaterial(2,"models/wireframe")
+holoAng(2,ang(0,0,180))
+holoColor(2,hsv2rgb(I%360,1,1))
+holoAng(2,entity():eyeAngles()+ang(Ang,0,0))
+holoDisableShading(2,1)
+
+holoCreate(3,vec(0,0,0))
+holoParent(3,entity())
+holoModel(3,"models/hunter/tubes/tube2x2x025.mdl")
+holoPos(3,owner():pos()+vec(0,0,50))
+holoScale(3,vec(1,1,1))
+holoAlpha(3,255)
+holoMaterial(3,"models/wireframe")
+holoAng(3,ang(0,0,180))
+holoColor(3,hsv2rgb(I%360,1,1))
+holoAng(3,entity():eyeAngles()+ang(Ang,90,0))
+holoDisableShading(3,1)
+
+
+holoCreate(4,vec(0,0,0))
+holoParent(4,entity())
+holoModel(4,"models/hunter/tubes/tube4x4x025.mdl")
+holoPos(4,owner():pos()+vec(0,0,50))
+holoScale(4,vec(1,1,1))
+holoAlpha(4,255)
+holoMaterial(4,"models/wireframe")
+holoAng(4,ang(0,0,180))
+holoColor(4,hsv2rgb(I%360,1,1))
+holoAng(4,entity():eyeAngles()+ang(Ang,180,0))
+holoDisableShading(4,1)
+
+holoCreate(5,vec(0,0,0))
+holoParent(5,entity())
+holoModel(5,"models/hunter/tubes/tube4x4x025.mdl")
+holoPos(5,owner():pos()+vec(0,0,50))
+holoScale(5,vec(1,1,1))
+holoAlpha(5,255)
+holoMaterial(5,"models/wireframe")
+holoAng(5,ang(0,0,180))
+holoColor(5,hsv2rgb(I%360,1,1))
+holoAng(5,entity():eyeAngles()+ang(Ang,270,0))
+holoDisableShading(5,1)
+
+
+holoCreate(13) 
+holoPos(13, owner():attachmentPos("eyes")) 
+holoAng(13, owner():attachmentAng("eyes")) 
+holoParentAttachment(13, owner(), "eyes" ) 
+holoAlpha(13,0) 
+
+holoCreate(14) 
+holoPos(14,holoEntity(13):pos() + holoEntity(13):up()*1.5 + holoEntity(13):forward()*-3) 
+holoAng(14, holoEntity(13):angles()) 
+holoModel(14,"models/holograms/hq_torus.mdl")
+holoMaterial(14,"models/debug/debugwhite")
+holoScale(14,vec(1.5,1.5,1.5))
+holoColor(14,hsv2rgb(I%360,1,1))
+holoParent(14,13)
+holoDisableShading(14,1)
+
+holoCreate(15) 
+holoPos(15,holoEntity(13):pos() + holoEntity(13):up()*1.5 + holoEntity(13):forward()*-3) 
+holoAng(15, holoEntity(13):angles()) 
+holoModel(15,"hq_sphere")
+holoMaterial(15,"models/debug/debugwhite")
+holoScale(15,vec(1.3,1.3,1.3))
+holoColor(15,vec(255,255,255))
+holoParent(15,13)
+holoDisableShading(15,1)
+
+holoCreate(16)
+holoPos(16,holoEntity(13):pos() + holoEntity(13):up()*-2.3 + holoEntity(13):forward()*-3) 
+holoAng(16, holoEntity(13):angles()) 
+holoModel(16,"models/player/items/humans/top_hat.mdl")
+holoMaterial(16,"models/debug/debugwhite")
+holoScale(16,vec(1.7,1.7,1.7))
+holoColor(16,hsv2rgb(I%360,1,1))
+holoParent(16,13)
+holoDisableShading(16,1)
+
+holoCreate(17)
+holoPos(17,holoEntity(13):pos() + holoEntity(13):up()*-2.3 + holoEntity(13):forward()*-3) 
+holoAng(17, holoEntity(13):angles()) 
+holoModel(17,"models/player/items/humans/top_hat.mdl")
+holoMaterial(17,"models/wireframe")
+holoScale(17,vec(1.8,1.8,1.8))
+holoColor(17,vec(255,255,255))
+holoParent(17,13)
+holoDisableShading(17,1)
+
+
+owner():setMaterial("models/debug/debugwhite")
+
