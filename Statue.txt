@@ -1,0 +1,47 @@
+@name [Mask of Envy] Statue
+@inputs
+@outputs
+@persist
+timer("moove",10000)
+
+entity():setAlpha(0)  
+entity():propNotSolid(1)
+entity():propShadow(0)
+
+if(first()) {
+    
+holoCreate(1)
+holoModel(1,"models/breen.mdl")
+holoMaterial(1,"models/props_canal/rock_riverbed01a")
+holoColor(1,vec(100))
+holoPos(1,holoEntity(1):pos() + holoEntity(1):up()*240 + holoEntity(1):forward()*0)
+holoScale(1,vec(3))
+holoParent(1,entity())
+holoEntity(1):animate("breenalyx_abuse")
+
+holoCreate(2)
+holoModel(2,"models/props_canal/bridge_pillar02.mdl")
+holoMaterial(2,"models/props_canal/rock_riverbed01a")
+holoColor(2,vec(100))
+holoParent(2,entity())
+
+holoCreate(3)
+holoModel(3,"models/hunter/tubes/circle2x2.mdl")
+holoMaterial(3,"models/props_canal/rock_riverbed01a")
+holoColor(3,vec(100))
+holoParent(3,entity())
+
+holoCreate(4)
+holoModel(4,"models/hunter/tubes/circle2x2.mdl")
+holoMaterial(4,"models/props_canal/rock_riverbed01a")
+holoPos(4,holoEntity(1):pos() + holoEntity(1):up()*0 + holoEntity(1):forward()*0)
+holoColor(4,vec(100))
+holoParent(4,entity())
+
+}
+
+if(clk("moove")) {
+holoEntity(1):animate("breenalyx_abuse")
+}
+
+

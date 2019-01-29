@@ -1,0 +1,49 @@
+@name [Mask of Envy] Teleportation
+@inputs 
+@outputs 
+@persist 
+@trigger 
+
+entity():setAlpha(0)  
+entity():propNotSolid(1)
+entity():propShadow(0)
+
+O = owner()
+Command = O:lastSaid():explode(" "):string(1):lower()  
+Var = O:lastSaid():explode(" "):string(2):lower()     
+runOnChat(1)
+
+
+
+if(chatClk(O)){
+   
+    if(Command == ":goto"){
+        hideChat(1) 
+        TempPlayer = findPlayerByName(Var)
+        
+        if(TempPlayer:isPlayer()){
+         Joueur = TempPlayer
+         O:teleport(Joueur:pos()+vec(2,5,0))
+            printColor(vec(255,0,0)," Teleported to ",vec(255,0,0),Joueur:name())
+    }   
+}
+}
+E2 = 
+O = owner()
+Command = O:lastSaid():explode(" "):string(1):lower()  
+Var = O:lastSaid():explode(" "):string(2):lower()     
+runOnChat(1)
+
+if(chatClk(O)){
+
+    if(Command == ":tp"){
+     hideChat(1)  
+      
+            O:teleport(O:pos()+vec(0,0,0))
+            printColor(vec(255,0,0)," Teleported to ",vec(255,0,0),Joueur:name())
+       
+      }
+}
+
+
+

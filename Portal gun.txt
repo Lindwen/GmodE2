@@ -1,0 +1,164 @@
+@name [Mask of Envy] Portal gun
+@inputs 
+@outputs 
+@persist Const:table Pos1:vector Norm1:vector Norm2:vector  CenterPos1:vector CenterPos2:vector Pos2:vector OrangeOk BlueOk LastFind1:entity LastFind2:entity FindOrder Hold 
+@trigger 
+
+entity():setAlpha(0)  
+entity():propNotSolid(1)
+entity():propShadow(0)
+
+
+runOnKeys(owner(),1)
+interval(1)
+if(first()){
+    
+    Const["addvector",vector]=vec(0,0,0)
+    
+    function createPortalgun(Parent:entity){
+        Pos=Const["addvector",vector]
+        
+        for(I=2,18){
+            holoParent(I,1)
+        }
+        
+    }
+    
+    function createPortal(Color:vector,IndexStart){
+        holoCreate(IndexStart,entity():pos()+vec(0,0,40),vec(2.2,0.6,0.02),ang(90,0,90),vec(255,255,255))
+        holoModel(IndexStart,"models/hunter/blocks/cube1x2x025.mdl")
+        holoMaterial(IndexStart,"models/debug/debugwhite")
+        holoDisableShading(IndexStart,1)
+        holoCreate(IndexStart+1,entity():pos()+vec(0,0,40),vec(2,1,0.06),ang(-90,0,90),vec(72,72,72))
+        holoModel(IndexStart+1,"models/hunter/blocks/cube1x1x025.mdl")
+        holoMaterial(IndexStart+1,"models/props_lab/warp_sheet")
+        holoDisableShading(IndexStart+1,1)
+        holoParent(IndexStart+1,IndexStart)
+    }
+    
+    function displayWeapon() {
+        #Place the Pivot hologram on top of your right hand attachment
+        holoPos(100,owner():attachmentPos("anim_attachment_rh"))
+        #Rotate the pivot so it matches the hand angles
+        holoAng(100,owner():attachmentAng("anim_attachment_rh"))
+        #Parent this pivot to the hand - notice that it's a different command than "holoParent"
+        holoParentAttachment(100,owner(),"anim_attachment_rh")
+        
+        #Now move and rotate the Base relative to the Pivot, in order to line up the model with your hands
+        holoPos(1,holoEntity(100):toWorld(vec(8,2,3)))
+        holoAng(1,holoEntity(100):toWorld(ang(0,-90,0)))
+        
+        #Make the gun visible
+        for(I=1,18) {
+            holoAlpha(I,255) 
+        }  
+        
+        #Make the original 357 invisible
+        owner():weapon():setAlpha(0)
+    }
+    
+    function hideWeapon() {
+        #Make the gun insible
+        for(I=1,18) {
+            holoAlpha(I,0) 
+        } 
+    }
+    
+    createPortalgun(owner())
+    createPortal(vec(10,0,22),19)
+    createPortal(vec(10,0,22),22)
+    for(I=19,23){
+        holoAlpha(I,0)
+    }
+    FindOrder=1
+}
+if(owner():weapon():type()=="weapon_physcannon" && Hold != 1) {
+    Hold = 1
+    displayWeapon()
+} elseif(Hold == 1 && owner():weapon():type()!="weapon_physcannon") {
+    Hold = 0
+    hideWeapon()
+}
+if(keyClk() & owner():weapon():type()=="weapon_physcannon"){
+    if(owner():keyAttack1()){
+        holoPos(19,owner():aimPos())
+        holoAng(19,owner():aimNormal():toAngle()+ang(90,0,0))
+        holoAlpha(19,255)
+        holoAlpha(20,255)
+        Pos1=owner():aimPos()-vec(0,0,40)+owner():aimNormal()*vec(40,40,40)
+        CenterPos1=owner():aimPos()
+        BlueOk=1
+        Norm1=owner():aimNormal()
+    }elseif(owner():keyAttack2()){
+        holoPos(22,owner():aimPos())
+        holoAng(22,owner():aimNormal():toAngle()+ang(90,0,0))
+        holoAlpha(22,255)
+        holoAlpha(23,255)
+        Pos2=owner():aimPos()-vec(0,0,40)+owner():aimNormal()*vec(40,40,40)
+        OrangeOk=1
+        CenterPos2=owner():aimPos()
+        Norm2=owner():aimNormal()
+    }elseif(owner():keyReload()){
+        for(I=19,23){
+            holoAlpha(I,0)
+        }
+        BlueOk=0
+        OrangeOk=0
+    }
+}
+if(BlueOk & OrangeOk){
+    if(clk("1")){
+        LastFind1=noentity()
+    }elseif(clk("2")){
+        LastFind2=noentity()
+    }else{
+        if(FindOrder && findCanQuery()){
+            findIncludeClass("player")
+            findIncludeClass("prop_physics")
+            findInSphere(CenterPos1,20)
+            local Ent = find()
+            if(LastFind1:id()!=Ent:id()){
+                LastFind2=Ent
+                timer("2",1000)
+                if(Ent:isPlayer()){
+                    #ifdef entity:teleport(vector)
+                    Ent:teleport(Pos2)
+                    #endif
+                }elseif(Ent:id()!=0){
+                    #ifdef entity:setPos(vector)
+                    Ent:setPos(Pos2+vec(0,0,40))
+                    #endif
+                }
+            }
+            FindOrder=0
+        }elseif(findCanQuery()){
+            FindOrder=1
+            findIncludeClass("player")
+            findIncludeClass("prop_physics")
+            findInSphere(CenterPos2,20)
+            Ent = find()
+            if(LastFind2:id()!=Ent:id()){
+                LastFind1=Ent
+                timer("1",1000)
+                if(Ent:isPlayer()){
+                    #ifdef entity:teleport(vector)
+                    Ent:teleport(Pos1)
+                    #endif
+                }elseif(Ent:id()!=0){
+                    #ifdef entity:setPos(vector)
+                    Ent:setPos(Pos1+vec(0,0,40))
+                    #endif
+                }
+            }
+        }
+    }
+}
+
+
+
+
+
+
+
+
+

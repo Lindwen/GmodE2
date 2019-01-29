@@ -1,0 +1,82 @@
+@name [Mask of Envy] Music
+@inputs 
+@outputs E:entity
+@persist 
+@trigger
+
+entity():setAlpha(0)  
+entity():propNotSolid(1)
+entity():propShadow(0)
+
+runOnChat(1)
+
+streamDisable3D(0)
+streamVolume(1,0.9)
+Volume = 0.9
+
+if(chatClk(owner()) && owner():lastSaid():left(1) == "."){
+    hideChat(1)
+    Command = owner():lastSaid():explode(" ")[1, string]
+    Argument = owner():lastSaid():explode(" ")[2, string]
+    if(Command == ".1"){
+        owner():streamStart(1,Volume,"http://rubis.cf/GET ME POWER.mp3")
+    }
+    elseif(Command == ".2"){
+        owner():streamStart(1,Volume,"http://rubis.cf/I JUST WANNA STAY WITH YOU EXTENDED.mp3")
+    }
+    elseif(Command == ".3"){
+        owner():streamStart(1,Volume,"http://rubis.cf/Initial D - Deja Vu.mp3")
+    }
+    elseif(Command == ".4"){
+        owner():streamStart(1,Volume,"http://rubis.cf/Initial D - Running in The 90s.mp3")
+    }
+    elseif(Command == ".5"){
+        owner():streamStart(1,Volume,"http://rubis.cf/Manuel - Gas Gas Gas.mp3")
+    }
+    elseif(Command == ".6"){    
+        owner():streamStart(1,Volume,"http://rubis.cf/MAYBE TONITE.mp3")
+    }
+    elseif(Command == ".7"){    
+        owner():streamStart(1,Volume,"http://rubis.cf/Neon Genesis Evangelion Opening Full Japanese Version- _A Cruel Angel's Thesis_.mp3")
+    }
+    elseif(Command == ".8"){    
+        owner():streamStart(1,Volume,"http://rubis.cf/Prayer (Extended mix).mp3")
+    }
+    elseif(Command == ".9"){     
+        owner():streamStart(1,Volume,"http://rubis.cf/Remember me.mp3")
+    }
+    elseif(Command == ".10"){      
+        owner():streamStart(1,Volume,"http://rubis.cf/Epic Celtic Music Mix_ LEGEND _ by Tartalo Music.mp3")
+    }
+    elseif(Command == ".11"){
+        owner():streamStart(1,Volume,"http://rubis.cf/S3RL Hentai.mp3")
+    }
+    elseif(Command == ".12"){
+        owner():streamStart(1,Volume,"http://rubis.cf/")
+    }
+    elseif(Command == ".13"){
+        owner():streamStart(1,Volume,"http://rubis.cf/")
+    }
+    elseif(Command == ".14"){
+        owner():streamStart(1,Volume,"http://rubis.cf/")
+    }
+    elseif(Command == ".15"){    
+        owner():streamStart(1,Volume,"http://rubis.cf/")
+    }
+    elseif(Command == ".16"){    
+        owner():streamStart(1,Volume,"http://rubis.cf/")
+    }
+    elseif(Command == ".17"){    
+        owner():streamStart(1,Volume,"http://rubis.cf/")
+    }
+    elseif(Command == ".18"){     
+        owner():streamStart(1,Volume,"http://rubis.cf/")
+    }
+    elseif(Command == ".19"){      
+        owner():streamStart(1,Volume,"http://rubis.cf/")
+    }
+    elseif(Command == ".s"){     
+        streamStop(1)
+    }
+}
+

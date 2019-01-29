@@ -1,0 +1,31 @@
+@name [Mask of Envy] WTF
+@inputs 
+@outputs 
+@persist A
+
+interval(100)
+
+entity():setAlpha(0)  
+entity():propNotSolid(1)
+entity():propShadow(0)
+
+O = owner()
+
+W1 = "weapon_physgun"
+
+if(O:weapon():type() == W1){
+
+if(O:keyAttack1()){
+
+A++
+
+holoCreate(A)
+holoAng(A,O:aimEntity():angles())
+holoModel(A,O:aimEntity():model())
+holoPos(A,O:aimEntity():pos())
+holoMaterial(A,O:aimEntity():getMaterial())
+holoColor(A,hsv2rgb((curtime()*200)%360,1,1))
+
+
+}
+}

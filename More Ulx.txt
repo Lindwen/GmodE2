@@ -1,0 +1,1353 @@
+@name [Mask of Envy] More Ulx
+@inputs Hud:wirelink
+@outputs 
+@persist Command:table Hide Homes:table MapName:string Loaded ReturnPos:vector Constantes:table
+@persist Folder:string ContentFile:string ContentAvaliableFile WaitForFile RetryFile MaxRetry TimeToRetry FileNameForRetry:string TimeOut
+@persist URL:string WaitHTTP AmpEncode:string NbOfRetry Retry RetryUrl:string RetryTime FuncHttp:string HudChoice:array
+@persist Content:string ContentAvaliable BlindPlayer:table God:table SpawnPos:vector Dead JumpKey:string HudKey:string HudActive HudMode:string HudPos:vector HudEnt:entity
+@persist AutoRespawnActive SlayProp:entity Invisible JailProps:table TempPlayer:entity Froze:table WaitUpdate
+@trigger 
+
+entity():setAlpha(0)  
+entity():propNotSolid(1)
+entity():propShadow(0)
+
+runOnChat(1)
+#ifdef runOnDeath(number)
+runOnDeath(1)
+#endif
+#ifdef runOnSpawn(number)
+runOnDeath(1)
+#endif
+runOnKeys(owner(),1)
+if(first() | duped()){
+    
+    
+    
+    ##CONFIG
+    #save folder
+    Folder = ""
+    #number of RetryFile if load failed
+    MaxRetry = 0  
+    #time between all RetryFile
+    TimeToRetry = 5000
+    #Time to check file
+    TimeOut = 1000
+    ##END CONFIG
+    
+    
+    
+    ##GLOBAL VARIABLES
+    #for save the ContentFile
+    ContentFile = ""
+    #to know if the ContentFile is Avaliable
+    ContentAvaliableFile=0
+    #to know if the e2 waiting for a file load
+    WaitForFile=0
+    #RetryFile cont
+    RetryFile = 0
+    #to know the file after RetryFile
+    FileNameForRetry=""
+    ##END GLOBAL VARIABLES
+    
+    
+    
+    ##FUNCTIONS FOR SAVE
+    #local save for string (basic function)
+    function void string:lsave(FileName:string){
+        if(fileCanWrite()){
+            fileWrite(Folder+FileName,This)
+        }else{
+            print("Local save Error: file ("+Folder+FileName+") can't write")
+        }
+    }
+    
+    #local save for vector (call string)
+    function void vector:lsave(FileName:string){
+        This:toString():lsave(FileName)
+    }
+    
+    #local save for angle (call string)
+    function void angle:lsave(FileName:string){
+        This:toString():lsave(FileName)
+    }
+    
+    #local save for table (call string)
+    function void table:lsave(FileName:string){
+        vonEncode(This):lsave(FileName)
+    }
+    
+    #local save for array (call string)
+    function void array:lsave(FileName:string){
+        vonEncode(This):lsave(FileName)
+    }
+    ##END FUNCTIONS FOR SAVE
+    
+    
+    
+    ##FUNCTIONS FOR LOAD 
+    #return 0 if the file is not loaded,1 otherwise
+    function number isFileLoaded(){
+        return ContentAvaliableFile
+    }
+    
+    #load a file and RetryFile if cant load
+    function void loadFile(FileName:string){
+        WaitForFile=1
+        ContentAvaliableFile=0
+        if(fileCanLoad()){
+            fileLoad(Folder+"/"+FileName)
+            runOnFile(1)
+            timer("timedout",TimeOut)
+        }elseif(MaxRetry!=0){
+            RetryFile=1
+            FileNameForRetry=Folder+FileName
+            print("Cant load file ("+FileNameForRetry+") RetryFile in "+TimeToRetry+" --- "+fileStatus())
+            timer("RetryFile",TimeToRetry)
+        }else{
+            print("Cant load the file, no RetryFile")
+        }
+    }
+    
+    #return the ContentFile for a string
+    function string string:getContentFile(){
+        ContentAvaliableFile=0
+        return ContentFile
+    }
+    
+    #return the ContentFile and convert into a table
+    function table table:getContentFile(){
+        ContentAvaliableFile=0
+        return vonDecodeTable(ContentFile)
+    }
+    
+    #return the ContentFile and convert into a array
+    function array array:getContentFile(){
+        ContentAvaliableFile=0
+        return vonDecode(ContentFile)
+    }
+    
+    #return the ContentFile and convert into a vector
+    function vector vector:getContentFile(){
+        ContentAvaliableFile=0
+        local X = ContentFile:explode("[")[2,string]:explode(",")[1,string]:toNumber()
+        local Y = ContentFile:explode("[")[2,string]:explode(",")[2,string]:toNumber()
+        local Z = ContentFile:explode("[")[2,string]:explode(",")[3,string]:sub(1,ContentFile:explode("[")[2,string]:explode(",")[3,string]:length()-1):toNumber()
+        return vec(X,Y,Z)
+    }
+    
+    #return the ContentFile and convert into a angle
+    function angle angle:getContentFile(){
+        ContentAvaliableFile=0
+        local X = ContentFile:explode("[")[2,string]:explode(",")[1,string]:toNumber()
+        local Y = ContentFile:explode("[")[2,string]:explode(",")[2,string]:toNumber()
+        local Z = ContentFile:explode("[")[2,string]:explode(",")[3,string]:sub(1,ContentFile:explode("[")[2,string]:explode(",")[3,string]:length()-1):toNumber()
+        return ang(X,Y,Z)
+    }
+    ##END FUNCTIONS FOR LOAD
+    
+    
+    
+    
+    
+    ##CONFIG
+    #url for the http request (server)
+    URL="http://yanndardot.fr/gmoddb/"
+    #to transform '&' on the url
+    AmpEncode="%5578"
+    #number of retry if cant http
+    NbOfRetry=3
+    #number of time between retry
+    RetryTime=2000
+    ##END CONFIG 
+    
+    
+    
+    ##GLOBAL VARIABLES
+    #if waiting for http request
+    WaitHTTP=0
+    #retry count
+    Retry=0
+    #the retry url
+    RetryUrl=""
+    #the function to be executed after the request (FuncHttp(HttpData))
+    FuncHttp=""
+    #the content of the request
+    Content=""
+    #to know if the content is Avaliable
+    ContentAvaliable=0
+    ##END GLOBAL VARIABLES
+    
+    
+    
+    ##FUNCTION FOR SAVE
+    #the function who receve the http data
+    #simply print if there is an error
+    function void saveHttp(HttpData:string){
+        if(HttpData:index(1)=="0"){
+            print("Erreur: "+HttpData:sub(2,HttpData:length()))
+        }
+    }
+    
+    #global save for string (the mdp is for safe save)
+    function void string:gsave(Mdp:string,Index:string){
+        FuncHttp="saveHttp"
+        if(httpCanRequest()){
+            WaitHTTP=1
+            runOnHTTP(1)
+            httpRequest(URL+"?mdp="+Mdp+"&index="+Index+"&data="+This:replace("&",AmpEncode))
+        }elseif(NbOfRetry!=0){
+            RetryUrl=URL+"?mdp="+Mdp+"&index="+Index+"&data="+This:replace("&",AmpEncode)
+            Retry=1
+            timer("retry",RetryTime)
+            print("Save of "+Index+" Failed, retry in "+RetryTime)
+        }else{
+            print("Save of "+Index+" Failed, no retry")
+        }
+    }
+    
+    #global save for vector (call gsave for string)
+    function void vector:gsave(Mdp:string,Index:string){
+        This:toString():gsave(Mdp,Index)
+    }
+    
+    #global save for angle (call gsave for string)
+    function void angle:gsave(Mdp:string,Index:string){
+        This:toString():gsave(Mdp,Index)
+    }
+    
+    #global save for table (call gsave for string)
+    function void table:gsave(Mdp:string,Index:string){
+        vonEncode(This):gsave(Mdp,Index)
+    }
+    
+    #global save for array (call gsave for string)
+    function void array:gsave(Mdp:string,Index:string){
+        vonEncode(This):gsave(Mdp,Index)
+    }
+    ##END FUNCTION FOR SAVE
+    
+    
+    
+    ##FUNCTION FOR LOAD
+    #return 1 if the content is avaliable, 0 otherwise
+    function number isIndexLoaded(){
+        return ContentAvaliable
+    }
+    
+    #the function who receve the http data
+    #print if error and save content
+    function void loadHttp(HttpData:string){
+        if(HttpData:index(1)=="0"){
+            print(HttpData:sub(2,HttpData:length()))
+            ContentAvaliable=1
+            Content="-1"
+        }else{
+            Content=HttpData:sub(2,HttpData:length()):replace(AmpEncode,"&")
+            ContentAvaliable=1
+        }
+    }
+    
+    #load an index in the content (mdp is for safe load)
+    function void loadIndex(Mdp:string,Index:string){
+        FuncHttp="loadHttp"
+        WaitHTTP=1
+        if(httpCanRequest()){
+            runOnHTTP(1)
+            httpRequest(URL+"?mdp="+Mdp+"&index="+Index)
+        }elseif(NbOfRetry!=0){
+            RetryUrl=URL+"?mdp="+Mdp+"&index="+Index
+            Retry=1
+            timer("retry",RetryTime)
+            print("Load of "+Index+" Failed, retry in "+RetryTime)
+        }else{
+            print("Load of "+Index+" Failed, no retry")
+            ContentAvaliable=1
+            Content="-1"
+        }
+    }
+    
+    #return the content for a string
+    function string string:getContent(){
+        ContentAvaliable=0
+        return Content
+    }
+    
+    #return the content and convert into a table
+    function table table:getContent(){
+        ContentAvaliable=0
+        return vonDecodeTable(Content)
+    }
+    
+    #return the content and convert into a array
+    function array array:getContent(){
+        ContentAvaliable=0
+        return vonDecode(Content)
+    }
+    
+    #return the content and convert into a vector
+    function vector vector:getContent(){
+        ContentAvaliable=0
+        local X = Content:explode("[")[2,string]:explode(",")[1,string]:toNumber()
+        local Y = Content:explode("[")[2,string]:explode(",")[2,string]:toNumber()
+        local Z = Content:explode("[")[2,string]:explode(",")[3,string]:sub(1,Content:explode("[")[2,string]:explode(",")[3,string]:length()-1):toNumber()
+        return vec(X,Y,Z)
+    }
+    
+    #return the content and convert into a angle
+    function angle angle:getContent(){
+        ContentAvaliable=0
+        local X = Content:explode("[")[2,string]:explode(",")[1,string]:toNumber()
+        local Y = Content:explode("[")[2,string]:explode(",")[2,string]:toNumber()
+        local Z = Content:explode("[")[2,string]:explode(",")[3,string]:sub(1,Content:explode("[")[2,string]:explode(",")[3,string]:length()-1):toNumber()
+        return ang(X,Y,Z)
+    }
+    ##END FUNCTIONS FOR LOAD
+    
+    JailProps = table()
+    
+    function message(Message:array) {
+    
+        #ifdef chatPrint(...)
+            if(Message[1,entity]:isPlayer()){
+                local Ent = Message[1,entity]
+                Message:shift()
+                chatPrint(Ent,Message)
+            }else {
+                chatPrint(Message)
+            }
+        #else
+            String = ""
+            for(I=1,Message:count()) {
+                if(Message[I,string] != "") {
+                String+=Message[I,string]
+                }
+            }
+            print(String)
+        #endif
+    }
+    
+    function entity:move(Pos:vector) {
+        local TeleportFunc=0
+        #ifdef entity:teleport(vector)
+            This:teleport(Pos)
+            TeleportFunc=1
+        #endif
+        #ifdef entity:plySetPos(vector)
+            if(!TeleportFunc) {
+                This:plySetPos(Pos)
+            }
+        #endif
+    }
+    
+    function number array:contains(Ent:entity){
+        for(I=1,This:count()){
+            if(This[I,entity]==Ent){
+                return 1
+            }
+        }
+        return 0
+    }
+    
+    
+    function addCommand(Label:string,Func:string,Desc:string,HudType:string){
+        local Index = Command:count()+1
+        Command[Index,table]=table()
+        Command[Index,table]["label",string]=Label
+        Command[Index,table]["function",string]=Func
+        Command[Index,table]["desc",string]=Desc
+        Command[Index,table]["hudType",string]=HudType
+    }
+    function addCommand(Label:string,Func:string){
+        addCommand(Label,Func,"Description par default.","none")
+    }
+    
+    
+    function cgoto(Args:array){
+        local Player = findPlayerByName(Args:concat(" "))
+        if(Player:isPlayer()){
+            message(array(Constantes["AllPlayerTextColor",vector],"Teleported to",teamColor(Player:team())," "+Player:name()))
+            ReturnPos=owner():pos()
+            owner():move(Player:pos()+Player:forward()*40)
+        }else{
+            message(array(owner(),Constantes["ErrorTextColor",vector],"Nom de joueur incorrect."))
+        }
+    }
+    
+    function ctp(Args:array){
+        local Player = findPlayerByName(Args:concat(" "))
+        if(Player:isPlayer() & (Player:friends():contains(owner()) | owner():isAdmin())){
+            
+            message(array(Constantes["AllPlayerTextColor",vector],"Teleport",teamColor(Player:team())," "+Player:name()))
+            Player:move(owner():aimPos()+owner():aimNormal()*40)
+        }else{
+            if(Player:isPlayer()){
+                message(array(owner(),Constantes["ErrorTextColor",vector],"Vous n'etes pas dans ses PP friends de ce joueur."))
+            }else{
+                message(array(owner(),Constantes["ErrorTextColor",vector],"Le joueur n'existe pas"))
+            }
+        }
+    }
+    function csethome(Args:array){
+        local Home = Args:concat(" ")
+        Homes[Home,vector] = owner():pos()
+        
+        message(array(owner(),Constantes["NormalTextColor",vector],"Home ",Constantes["HomesTextColor",vector],Home,Constantes["NormalTextColor",vector]," placer."))
+        Homes:lsave(MapName+"_homes.txt")
+    }
+    
+    function chome(Args:array){
+        local Home = Args:concat(" ")
+        if(Homes:exists(Home)){
+            ReturnPos=owner():pos()
+            owner():move(Homes[Home,vector])
+            
+        }else{
+            message(array(owner(),Constantes["ErrorTextColor",vector],"Nom de home incorrect"))
+        }
+    }
+    
+    function chomes(Args:array){
+            message(array(owner(),Constantes["NormalTextColor",vector],"Homes: ",Constantes["HomesTextColor",vector],Homes:keys():concat(", ")))
+    }
+    
+    function cdelhome(Args:array){
+        local Home = Args:concat(" ")
+        if(Homes:exists(Home)){
+            Homes:remove(Home)
+            message(array(owner(),Constantes["CorrectTextColor",vector],"Home ",Constantes["HomesTextColor",vector],Home,Constantes["CorrectTextColor",vector]," supprimer."))
+            Homes:lsave(MapName+"_homes.txt")
+        }else{
+            message(array(owner(),Constantes["ErrorTextColor",vector],"Nom de home incorrect"))
+        }
+    }
+    function creturn(Args:array){
+        local ReturnPosTemp = owner():pos()
+        local TeleportFunc=0
+        owner():move(ReturnPos)
+        ReturnPos=ReturnPosTemp
+        message(array(owner(),Constantes["NormalTextColor",vector],"Vous retourner a votre derniere position."))
+    }
+    
+    function table getCommande(Label:string){
+        for(I=1,Command:count()){
+            if(Command[I,table]["label",string] == Label){
+                return Command[I,table]
+            }
+        }
+        return table()
+    }
+    
+    function chide(Args:array){
+        Hide = !Hide
+        message(array(owner(),Constantes["NormalTextColor",vector],"Affichage des commandes "+( Hide? "desactive" : "active" )+"."))
+    }
+    
+    function chelp(Args:array){
+        if(Args:count()!=0){
+            Com = getCommande(Args[1,string])
+            if(Com:count()==0){
+                message(array(owner(),Constantes["ErrorTextColor",vector],"Commande \"",Constantes["CommandeTextColor",vector],Args[1,string],Constantes["ErrorTextColor",vector],"\" inconnu."))
+            }else{
+                message(array(owner(),Constantes["CommandeTextColor",vector],Com["label",string]+": ",Constantes["NormalTextColor",vector],Com["desc",string]))
+            }
+        }else{
+            local List=""
+            for(I=1,Command:count()){
+                List=List+Command[I,table]["label",string]+", "
+            }
+            message(array(owner(),Constantes["NormalTextColor",vector],"Commandes: ",Constantes["CommandeTextColor",vector],List))
+            
+            message(array(owner(),Constantes["NormalTextColor",vector],"faites \":help <label>\" pour plus d'info sur une commande"))
+        }
+    }
+    
+    function cjump(Args:array){
+        if(Args:count()==1){
+            owner():move(Args[1,vector])
+        }else{
+            owner():move(owner():aimPos()-vec(0,0,40)+owner():aimNormal()*vec(40,40,40))
+        }
+    }
+    
+    function cblind(Args:array){
+        local Player = findPlayerByName(Args:concat(" "))
+        if(Player:isPlayer()){
+            BlindPlayer[Player:id(),entity] = Player
+            
+            message(array(owner(),Constantes["NormalTextColor",vector],"Le joueur a ete aveugler"))
+            holoCreate(Player:id())
+            holoScale(Player:id(),vec(-10,-10,-10))
+            holoPos(Player:id(),Player:pos()+vec(0,0,40))
+            holoModel(Player:id(),"hq_sphere")
+            holoColor(Player:id(),vec(0,0,0))
+            holoParentAttachment(Player:id(),Player,"eyes")
+        }else{
+            message(array(owner(),Constantes["ErrorTextColor",vector],"Le joueur est incorrect"))
+        }
+    }
+    
+    function cunblind(Args:array){
+        local Player = findPlayerByName(Args:concat(" "))
+        if(Player:isPlayer()){
+            if(BlindPlayer:exists(Player:id())){
+                BlindPlayer[Player:id(),entity] = Player
+                
+                message(array(owner(),Constantes["NormalTextColor",vector],"Le joueur n'est plus aveugler"))
+                holoDelete(Player:id())
+                BlindPlayer:removeEntity(Player:id())
+            }else{
+                message(array(owner(),Constantes["ErrorTextColor",vector],"Le joueur n'est pas aveugler"))
+            }
+        }else{
+                message(array(owner(),Constantes["ErrorTextColor",vector],"Le joueur est incorrect"))
+        }
+    }
+        
+    function cinfo(Args:array){
+        if(Args:count()==0){
+            message(array(owner(),Constantes["ErrorTextColor",vector],"Veuillez mettre un nom de joueur en ligne"))
+        }else{
+            local Player = findPlayerByName(Args:concat(" "))
+            if(Player:isPlayer()){
+                message(array(owner(),Constantes["NormalTextColor",vector],"----- ",teamColor(Player:team()),Player:name(),Constantes["NormalTextColor",vector]," -----"))
+                message(array(owner(),Constantes["NormalTextColor",vector],"Steam id: ",Constantes["HomesTextColor",vector],Player:steamID()))
+                message(array(owner(),Constantes["NormalTextColor",vector],"entity id: ",Constantes["HomesTextColor",vector],Player:id()+""))
+                message(array(owner(),Constantes["NormalTextColor",vector],"Arme en main: ",Constantes["HomesTextColor",vector],Player:weapon():type()+(Player:weapon():type()=="gmod_tool"?" ("+Player:tool()+")" :"")))
+                findIncludePlayerProps(Player)
+                findExcludeModel("/weapons/")
+                findExcludeModel("/camera.mdl")
+                findExcludeClass("player")
+                findInSphere(Player:pos(),1000000)
+                local Find = findToArray()
+                message(array(owner(),Constantes["NormalTextColor",vector],"nombre de props: ",Constantes["HomesTextColor",vector],Find:count()+""))
+                message(array(owner(),Constantes["NormalTextColor",vector],"vie/armure: ",Constantes["HomesTextColor",vector],Player:health()+"/"+Player:armor()))
+                message(array(owner(),Constantes["NormalTextColor",vector],"Groupe: ",teamColor(Player:team()),Player:team():teamName()))
+            }
+        }
+    }
+    
+    function cpm(Args:array){
+        Player = findPlayerByName(Args[1,string])
+        if(Player:isPlayer()){
+            message(array(owner(),Constantes["NormalTextColor",vector],"PM envoyer"))
+            Args:shift()
+            message(array(Player,Constantes["NormalTextColor",vector],"(pm) : ",vec(255,255,255),Args:concat(" ")))
+        }else{
+            message(array(owner(),Constantes["ErrorTextColor",vector] ,"Le joueur n'existe pas"))
+        }
+    }
+    
+    function cgod(Args:array){
+        if(Args[1,string]!=""){
+            Player = findPlayerByName(Args:concat(" "))
+            if(Player:isPlayer() & (Player:friends():contains(owner()) | owner():isAdmin())){
+                God[Player:name(),number] = !God[Player:name(),number]
+                #ifdef entity:plyGod(number)
+                    Player:plyGod(God[Player:name(),number])
+                #endif
+                
+                message(array(Constantes["AllPlayerTextColor",vector],(God[Player:name(),number]?"granted" :"remove")+" godmod to",teamColor(Player:team())," "+Player:name()))
+            }else{
+                if(Player:isPlayer()){
+                    message(array(owner(),Constantes["ErrorTextColor",vector] ,"Vous n'etes pas dans ses PP friends de ce joueur."))
+                }else{
+                    message(array(owner(),Constantes["ErrorTextColor",vector] ,"Le joueur n'existe pas"))
+                }
+            }
+        }else{
+            God[owner():name(),number] = !God[owner():name(),number]
+            #ifdef entity:plyGod(number)
+                owner():plyGod(God[owner():name(),number])
+            #endif
+            message(array(Constantes["AllPlayerTextColor",vector],(God[owner():name(),number]?"granted" :"remove")+" godmod to",teamColor(owner():team())," "+owner():name()))
+        }
+    }
+    
+    function cnoclip(Args:array){
+        if(Args[1,string]!=""){
+            Player = findPlayerByName(Args:concat(" "))
+            if(Player:isPlayer() & (Player:friends():contains(owner()) | owner():isAdmin())){
+                #ifdef entity:plyNoclip(number)
+                    Player:plyNoclip(!Player:inNoclip())
+                #endif
+                message(array(Constantes["AllPlayerTextColor",vector],(Player:inNoclip()?"granted" :"remove")+" noclip to",teamColor(Player:team())," "+Player:name()))
+            }else{
+                if(Player:isPlayer()){
+                    message(array(owner(),Constantes["ErrorTextColor",vector] ,"Vous n'etes pas dans ses PP friends de ce joueur."))
+                }else{
+                    message(array(owner(),Constantes["ErrorTextColor",vector] ,"Le joueur n'existe pas"))
+                }
+            }
+        }else{
+            #ifdef entity:plyNoclip(number)
+                owner():plyNoclip(!owner():inNoclip())
+            #endif
+            
+            message(array(Constantes["AllPlayerTextColor",vector],(owner():inNoclip()?"granted" :"remove")+" noclip to",teamColor(owner():team())," "+owner():name()))
+        }
+    }
+    
+    
+    function csethealth(Args:array){
+        local Vie = Args[1,string]:toNumber()
+        if(Args[2,string]!=""){
+            Args:shift()
+            Player = findPlayerByName(Args:concat(" "))
+            if(Player:isPlayer() & (Player:friends():contains(owner()) | owner():isAdmin())){
+                #ifdef entity:plySetHealth(number)
+                    Player:plySetHealth(Vie)
+                #endif
+                
+                message(array(Constantes["AllPlayerTextColor",vector],"set the health of",teamColor(Player:team())," "+Player:name(),Constantes["AllPlayerTextColor",vector]," to "+Vie+"."))
+            }else{
+                if(Player:isPlayer()){
+                    message(array(owner(),Constantes["ErrorTextColor",vector] ,"Vous n'etes pas dans ses PP friends de ce joueur."))
+                }else{
+                    message(array(owner(),Constantes["ErrorTextColor",vector] ,"Le joueur n'existe pas"))
+                }
+            }
+        }else{
+            #ifdef entity:plySetHealth(number)
+                owner():plySetHealth(Vie)
+            #endif
+            
+            message(array(Constantes["AllPlayerTextColor",vector],"set the health of",teamColor(owner():team())," "+owner():name(),Constantes["AllPlayerTextColor",vector]," to "+Vie+"."))
+        }
+    }
+    
+    
+    function csetarmor(Args:array){
+        local Vie = Args[1,string]:toNumber()
+        if(Args[2,string]!=""){
+            Args:shift()
+            Player = findPlayerByName(Args:concat(" "))
+            if(Player:isPlayer() & (Player:friends():contains(owner()) | owner():isAdmin())){
+                #ifdef entity:plySetArmor(number)
+                    Player:plySetArmor(Vie)
+                #endif
+                message(array(Constantes["AllPlayerTextColor",vector],"set the armor of",teamColor(Player:team())," "+Player:name(),Constantes["AllPlayerTextColor",vector]," to "+Vie+"."))
+            }else{
+                if(Player:isPlayer()){
+                    message(array(owner(),Constantes["ErrorTextColor",vector] ,"Vous n'etes pas dans ses PP friends de ce joueur."))
+                }else{
+                    message(array(owner(),Constantes["ErrorTextColor",vector] ,"Le joueur n'existe pas"))
+                }
+            }
+        }else{
+            #ifdef entity:plySetArmor(number)
+                owner():plySetArmor(Vie)
+            #endif
+            message(array(Constantes["AllPlayerTextColor",vector],"set the armor of",teamColor(owner():team())," "+owner():name(),Constantes["AllPlayerTextColor",vector]," to "+Vie+"."))
+        }
+    }
+    
+    
+    function csetspeed(Args:array){
+        local Vie = Args[1,string]:toNumber()
+        if(Args[2,string]!=""){
+            Args:shift()
+            Player = findPlayerByName(Args:concat(" "))
+            if(Player:isPlayer() & (Player:friends():contains(owner()) | owner():isAdmin())){
+                #ifdef owner:plySetSpeed(number)
+                    Player:plySetSpeed(Vie)
+                #endif
+                message(array(Constantes["AllPlayerTextColor",vector],"set the speed of",teamColor(Player:team())," "+Player:name(),Constantes["AllPlayerTextColor",vector]," to "+Vie+"."))
+            }else{
+                if(Player:isPlayer()){
+                    message(array(owner(),Constantes["ErrorTextColor",vector] ,"Vous n'etes pas dans ses PP friends de ce joueur."))
+                }else{
+                    message(array(owner(),Constantes["ErrorTextColor",vector] ,"Le joueur n'existe pas"))
+                }
+            }
+        }else{
+            #ifdef entity:plySetSpeed(number)
+                owner():plySetSpeed(Vie)
+            #endif
+            message(array(Constantes["AllPlayerTextColor",vector],"set the speed of",teamColor(owner():team())," "+owner():name(),Constantes["AllPlayerTextColor",vector]," to "+Vie+"."))
+        }
+    }
+    
+    function csetgravity(Args:array){
+        local Vie = Args[1,string]:toNumber()
+        if(Args[2,string]!=""){
+            Args:shift()
+            Player = findPlayerByName(Args:concat(" "))
+            if(Player:isPlayer() & (Player:friends():contains(owner()) | owner():isAdmin())){
+                #ifdef entity:plySetGravity(number)
+                    Player:plySetGravity(Vie)
+                #endif
+                message(array(Constantes["AllPlayerTextColor",vector],"set the gravity of",teamColor(Player:team())," "+Player:name(),Constantes["AllPlayerTextColor",vector]," to "+Vie+"."))
+            }else{
+                if(Player:isPlayer()){
+                        message(array(owner(),Constantes["ErrorTextColor",vector] ,"Vous n'etes pas dans ses PP friends de ce joueur."))
+                }else{
+                    message(array(owner(),Constantes["ErrorTextColor",vector] ,"Le joueur n'existe pas"))
+                }
+            }
+        }else{
+            #ifdef entity:plySetGravity(number)
+                owner():plySetGravity(Vie)
+            #endif
+            message(array(Constantes["AllPlayerTextColor",vector],"set the gravity of",teamColor(owner():team())," "+owner():name(),Constantes["AllPlayerTextColor",vector]," to "+Vie+"."))
+        }
+    }
+    
+    function cexit(Args:array){
+        if(Args[1,string]!=""){
+            Player = findPlayerByName(Args:concat(" "))
+            if(Player:isPlayer() & (Player:friends():contains(owner()) | owner():isAdmin())){
+                #ifdef entity:plyExitVehicle()
+                    Player:plyExitVehicle()
+                #endif
+                
+                message(array(owner(),teamColor(owner():team()),owner():name(),Constantes["NormalTextColor",vector]," a ete expulser de son vehicule"))
+            }else{
+                if(Player:isPlayer()){
+                    message(array(owner(),Constantes["ErrorTextColor",vector] ,"Vous n'etes pas dans ses PP friends de ce joueur."))
+                }else{
+                    message(array(owner(),Constantes["ErrorTextColor",vector] ,"Le joueur n'existe pas"))
+                }
+            }
+        }else{
+            message(array(owner(),Constantes["ErrorTextColor",vector] ,"veuillez mettre un nom de joueur."))
+        }
+    }
+    
+    function cspawn(Args:array){
+        if(Args[1,string]!=""){
+            Player = findPlayerByName(Args:concat(" "))
+            if(Player:isPlayer() & (Player:friends():contains(owner()) | owner():isAdmin())){
+                #ifdef entity:plySpawn()
+                    Player:plySpawn()
+                #endif
+                message(array(owner(),teamColor(owner():team()),owner():name(),Constantes["NormalTextColor",vector]," a ete respawn"))
+            }else{
+                if(Player:isPlayer()){
+                    message(array(owner(),Constantes["ErrorTextColor",vector] ,"Vous n'etes pas dans ses PP friends de ce joueur."))
+                }else{
+                    message(array(owner(),Constantes["ErrorTextColor",vector] ,"Le joueur n'existe pas"))
+                }
+            }
+        }else{
+            message(array(owner(),Constantes["ErrorTextColor",vector] ,"veuillez mettre un nom de joueur."))
+        }
+    }
+    
+    function csetspawn(Args:array){
+        if(Args:count()==1){
+            SpawnPos=Args[1,vector]
+        }else{
+            SpawnPos=owner():pos()
+        }
+        
+        message(array(owner(),Constantes["NormalTextColor",vector],"Spawn set."))
+    }
+    
+    function hudChangeState(){
+        if(HudMode=="player"){
+            HudActive=0
+            Hud:egpClear()
+        }else{
+            HudActive = !HudActive
+            Hud:egpClear()
+        }
+    }
+    
+    function hudPlayer(Pl:entity){
+        HudEnt=Pl
+        Hud:egp3DTracker(1,vec(0,0,80))
+        Hud:egpParent(1,Pl)
+        
+        Hud:egpBox(2,vec2(0,0),vec2(0,0))
+        Hud:egpParent(2,1)
+        
+        Hud:egpRoundedBox(4,vec2(0,0),vec2(200,50))
+        Hud:egpColor(4,vec(0,0,0))
+        Hud:egpAlpha(4,150)
+        Hud:egpParent(4,1)
+        
+        Hud:egpText(3,Pl:name(),vec2(0,0))
+        Hud:egpAlign(3,1,1)
+        Hud:egpSize(3,30)
+        Hud:egpParent(3,1)
+        Index=5
+        for(I=1,Command:count()){
+            if(Command[I,table]["hudType",string]=="player"){
+                local ComNum = (Index-3)/2
+                local Pos = vec2((((ComNum+1)%2)*200)-100,floor(25*(ComNum-(ComNum+1)%2))+30)
+                Hud:egpRoundedBox(Index,Pos,vec2(100,35))
+                Hud:egpColor(Index,vec(255,191,0))
+                Hud:egpParent(Index,1)
+                
+                Hud:egpText(Index+1,ComNum+" - "+Command[I,table]["label",string],Pos)
+                Hud:egpColor(Index+1,vec(0,161,255))
+                Hud:egpAlign(Index+1,1,1)
+                Hud:egpSize(3,25)
+                Hud:egpParent(Index+1,1)
+                Index+=2
+            }
+        }
+    }
+    
+    function cselect(Args:array){
+        if(Args[1,string]!=""){
+            Player = findPlayerByName(Args:concat(" "))
+            if(Player:isPlayer()){
+                Hud:egpClear()
+                hudPlayer(Player)
+            }else{
+                message(array(owner(),Constantes["ErrorTextColor",vector] ,"Le joueur n'existe pas"))
+            }
+        }else{
+            message(array(owner(),Constantes["ErrorTextColor",vector] ,"veuillez mettre un nom de joueur."))
+        }
+    }
+    
+    function cautorespawn(Args:array){
+        AutoRespawnActive  = !AutoRespawnActive
+        message(array(owner(),Constantes["NormalTextColor",vector] ,"Autorespawn "+(AutoRespawnActive ? "Active" : "Desactive")))
+    }
+    
+    function cslay(Args:array) {
+        if(Args[1,string]!=""){
+            Player = findPlayerByName(Args:concat(" "))
+            if(Player:isPlayer()){
+                SlayProp:propDelete()
+                SlayProp = propSpawn("models/hunter/blocks/cube05x05x05.mdl",Player:pos()+vec(0,0,90),0)
+                SlayProp:setMass(500000)
+                SlayProp:setAlpha(0)
+                timer("removeProp",1000)
+                message(array(owner(),Constantes["NormalTextColor",vector] ,"Joueur kill"))
+            }else{
+                message(array(owner(),Constantes["ErrorTextColor",vector] ,"Le joueur n'existe pas"))
+            }
+        }else{
+            message(array(owner(),Constantes["ErrorTextColor",vector] ,"veuillez mettre un nom de joueur."))
+        }
+    }
+    
+    function cdelspawn(Args:array) {
+        SpawnPos=vec(0,0,0)
+        message(array(owner(),Constantes["NormalTextColor",vector] ,"spawn supprime"))
+    }
+    function csend(Args:array){
+        if(Args:count() >= 2){
+            local Player1 = findPlayerByName(Args[1,string])
+            local Player2 = findPlayerByName(Args[2,string])
+            if(Player1:isPlayer()){
+                if(Player2:isPlayer()){
+                            
+                    local TeleportFunc=0
+                    Player1:move(Player2:pos()+Player2:forward()*40)
+                        message(array(Constantes["AllPlayerTextColor",vector],"teleport",teamColor(Player1:team())," "+Player1:name(),Constantes["AllPlayerTextColor",vector]," to ",teamColor(Player2:team())," "+Player2:name(),Constantes["AllPlayerTextColor",vector],"."))
+                }else{
+                    message(array(owner(),Constantes["ErrorTextColor",vector] ,"Le joueur 2 n'existe pas"))
+                }
+            }else{
+                message(array(owner(),Constantes["ErrorTextColor",vector] ,"Le joueur 1 n'existe pas"))
+            }
+        }else{
+            message(array(owner(),Constantes["ErrorTextColor",vector] ,"veuillez mettre deux nom de joueur."))
+        }
+    }
+    
+    function cinvisible(Args:array) {
+        Invisible =!Invisible
+        if(Invisible){
+            owner():weapon():setMaterial("effects/ar2_altfire1b")
+            owner():setMaterial("effects/ar2_altfire1b")
+        } else {
+            owner():weapon():setMaterial("")
+            owner():setMaterial("")
+        }
+        message(array(owner(),Constantes["NormalTextColor",vector] ,"Vous etes "+(Invisible? "" : "plus")+" invisible"))
+    }
+    
+    function cjail(Args:array) {
+        if(Args[1,string]!=""){
+            Player = findPlayerByName(Args:concat(" "))
+            if(Player:isPlayer()){
+                if(JailProps:exists(Player:name())){
+                    message(array(owner(),Constantes["ErrorTextColor",vector] ,"Le joueur ", teamColor(Player:team()),Player:name(),Constantes["ErrorTextColor",vector] ," est deja jail"))
+                } else {
+                    JailProps[Player:name(),table] = table()
+                    JailProps[Player:name(),table][0,entity] = propSpawn("models/props_building_details/Storefront_Template001a_Bars.mdl",Player:pos()+vec(40,0,60),1)
+                    JailProps[Player:name(),table][1,entity] = propSpawn("models/props_building_details/Storefront_Template001a_Bars.mdl",Player:pos()+vec(-40,0,60),1)
+                    TempPlayer = Player
+                    timer("finishJail",200)
+                    message(array(owner(),Constantes["NormalTextColor",vector] ,"Le joueur ", teamColor(Player:team()),Player:name(),Constantes["NormalTextColor",vector] ," a ete jail"))
+                }
+            }else{
+                message(array(owner(),Constantes["ErrorTextColor",vector] ,"Le joueur n'existe pas"))
+            }
+        }else{
+            message(array(owner(),Constantes["ErrorTextColor",vector] ,"veuillez mettre un nom de joueur."))
+        }
+    }
+    
+    function cunjail(Args:array) {
+        if(Args[1,string]!=""){
+            Player = findPlayerByName(Args:concat(" "))
+            if(Player:isPlayer()){
+                if(!JailProps:exists(Player:name())){
+                    message(array(owner(),Constantes["ErrorTextColor",vector] ,"Le joueur ", teamColor(Player:team()),Player:name(),Constantes["ErrorTextColor",vector] ," n'est pas jail"))
+                } else {
+                    for (I=0,4) {
+                        JailProps[Player:name(),table][I,entity]:propDelete()
+                    }
+                    JailProps:remove(Player:name())
+                    message(array(owner(),Constantes["NormalTextColor",vector] ,"Le joueur ", teamColor(Player:team()),Player:name(),Constantes["NormalTextColor",vector] ," a ete unjail"))
+                }
+            }else{
+                message(array(owner(),Constantes["ErrorTextColor",vector] ,"Le joueur n'existe pas"))
+            }
+        }else{
+            message(array(owner(),Constantes["ErrorTextColor",vector] ,"veuillez mettre un nom de joueur."))
+        }
+    }
+    
+    function cslap(Args:array) {
+        if(Args[1,string]!=""){
+            Player = findPlayerByName(Args:concat(" "))
+            if(Player:isPlayer()){
+                SlayProp:propDelete()
+                Origine = Player:pos()+Player:forward()*50+vec(0,0,50)
+                SlayProp = propSpawn("models/hunter/blocks/cube05x05x05.mdl",Origine,0)
+                SlayProp:setMass(5000)
+                SlayProp:applyOffsetForce((Origine-Player:pos()+vec(0,0,50))*-1000000,(Origine-Player:pos()+vec(0,0,50))*-1000000)
+                SlayProp:setAlpha(255)
+                timer("removeProp",100)
+                message(array(owner(),Constantes["NormalTextColor",vector] ,"Le joueur ",teamColor(Player:team()),Player:name() ,Constantes["NormalTextColor",vector]," a ete slap"))
+            }else{
+                message(array(owner(),Constantes["ErrorTextColor",vector] ,"Le joueur n'existe pas"))
+            }
+        }else{
+                message(array(owner(),Constantes["ErrorTextColor",vector] ,"veuillez mettre un nom de joueur."))
+        }
+    }
+    
+    function hudPos(Pos:vector){
+        HudPos=Pos
+        Hud:egp3DTracker(1,Pos)
+        
+        Hud:egpBox(2,vec2(0,0),vec2(0,0))
+        Hud:egpParent(2,1)
+        
+        Hud:egpTriangle(3,vec2(-20,-20),vec2(20,-20),vec2(0,0))
+        Hud:egpColor(3,vec(255,0,0))
+        Hud:egpParent(3,1)
+        
+        Index=4
+        for(I=1,Command:count()){
+            if(Command[I,table]["hudType",string]=="pos"){
+                local ComNum = (Index-2)/2
+                local Pos = vec2(0,ComNum*-50)
+                Hud:egpRoundedBox(Index,Pos,vec2(100,35))
+                Hud:egpColor(Index,vec(255,191,0))
+                Hud:egpParent(Index,1)
+                
+                Hud:egpText(Index+1,ComNum+" - "+Command[I,table]["label",string],Pos)
+                Hud:egpColor(Index+1,vec(0,161,255))
+                Hud:egpAlign(Index+1,1,1)
+                Hud:egpSize(3,25)
+                Hud:egpParent(Index+1,1)
+                Index+=2
+            }
+        }
+        
+    }
+    
+    function array getTarget(){
+        if(HudMode=="player"){
+            return array(HudEnt:name())
+        }else{
+            return array(HudPos)
+        }
+    }
+    
+    function runCommand(Num , Type:string ){
+        local Count=1
+        for(I=1,Command:count()){
+            if(Command[I,table]["hudType",string]==Type){
+                if(Count==Num){
+                    Command[I,table]["function",string](getTarget())
+                    break
+                }
+                Count++
+            }
+        }
+    }
+    Froze = table()
+    function csuperfreeze(Args:array) {
+        if(Args[1,string]!=""){
+            Player = findPlayerByName(Args:concat(" "))
+            if(Player:isPlayer() & (Player:friends():contains(owner()) | owner():isAdmin())){
+                if(Player:isFrozen()) {
+                    message(array(owner(),Constantes["ErrorTextColor",vector] ,"Le joueur est deja superfreeze"))
+                    return
+                }
+                #ifdef entity:plyFreeze(number)
+                    Player:plyFreeze(1)
+                #endif
+                message(array(Constantes["AllPlayerTextColor",vector]," froze ",teamColor(Player:team())," "+Player:name(),Constantes["AllPlayerTextColor",vector],"."))
+            }else{
+                if(Player:isPlayer()){
+                    message(array(owner(),Constantes["ErrorTextColor",vector] ,"Vous n'etes pas dans ses PP friends de ce joueur."))
+                }else{
+                    message(array(owner(),Constantes["ErrorTextColor",vector] ,"Le joueur n'existe pas"))
+                }
+            }
+        }else{
+            message(array(owner(),Constantes["ErrorTextColor",vector] ,"veuillez mettre un nom de joueur."))
+        }
+    }
+    
+    function cupdate(Args:array) {
+        message(array(owner(),Constantes["NormalTextColor",vector] ,"Le more ulx vas etre mis a jours, lorsque l'e2 sera redemarer merci de reenregistrer l'e2."))
+        if(httpCanRequest()) {
+            httpRequest("http://rush-site.fr/moreulx/more_ulx.txt")
+            WaitUpdate = 1
+            runOnHTTP(1)
+        }else {
+            message(array(owner(),Constantes["ErrorTextColor",vector] ,"Impossible d'envoyer une requete vers le serveur veuillez reessayer plus tard."))
+        }
+    }
+    
+    function cfreeze(Args:array) {
+        if(Args[1,string]!=""){
+            Player = findPlayerByName(Args:concat(" "))
+            if(Player:isPlayer()){
+                if(Froze:exists(Player:steamID())) {
+                    message(array(owner(),Constantes["ErrorTextColor",vector] ,"Le joueur est deja freeze"))
+                    return
+                }
+                Froze[Player:steamID(),entity] = propSpawn("models/hunter/blocks/cube2x2x2.mdl",Player:pos()+vec(0,0,40),1)
+                Froze[Player:steamID(),entity]:setAlpha(0)
+                message(array(Constantes["AllPlayerTextColor",vector]," froze ",teamColor(Player:team())," "+Player:name(),Constantes["AllPlayerTextColor",vector],"."))
+            }else{
+                message(array(owner(),Constantes["ErrorTextColor",vector] ,"Le joueur n'existe pas"))
+            }
+        }else{
+            message(array(owner(),Constantes["ErrorTextColor",vector] ,"veuillez mettre un nom de joueur."))
+        }
+    }
+    
+    function cunfreeze(Args:array) {
+        if(Args[1,string]!=""){
+            Player = findPlayerByName(Args:concat(" "))
+            if(Player:isPlayer()){
+                local F = 0
+                if(Froze:exists(Player:steamID())) {
+                    Froze[Player:steamID(),entity]:propDelete()
+                    Froze:remove(Player:steamID())
+                    F=1
+                }
+                #ifdef entity:plyFreeze(number)
+                    Player:plyFreeze(0)
+                #endif
+                message(array(Constantes["AllPlayerTextColor",vector]," unfroze ",teamColor(Player:team())," "+Player:name(),Constantes["AllPlayerTextColor",vector],"."))
+            }else{
+                if(Player:isPlayer()){
+                    message(array(owner(),Constantes["ErrorTextColor",vector] ,"Vous n'etes pas dans ses PP friends de ce joueur."))
+                }else{
+                    message(array(owner(),Constantes["ErrorTextColor",vector] ,"Le joueur n'existe pas"))
+                }
+            }
+        }else{
+            message(array(owner(),Constantes["ErrorTextColor",vector] ,"veuillez mettre un nom de joueur."))
+        }
+    }
+    Hide=1
+    BlindPlayer=table()
+    Command=table()
+    Constantes = table()
+    God = table()
+    Constantes["NormalTextColor",vector] = vec(88,218,255)
+    Constantes["AllPlayerTextColor",vector] = vec(150,220,255)
+    Constantes["CommandeTextColor",vector] = vec(255,191,0)
+    Constantes["ErrorTextColor",vector] = vec(200,25,25)
+    Constantes["CorrectTextColor",vector] = vec(25,200,25)
+    Constantes["HomesTextColor",vector] = vec(200,150,25)
+    Constantes["Version",number]=2.3
+    
+    Homes=table()
+    Loaded=0
+    MapName=map()
+    SpawnPos=vec(0,0,0)
+    ReturnPos=entity():pos()
+    Hud:egpClear()
+    HudKey = "lalt"
+    HudChoice=array("pad_1","pad_2","pad_3","pad_4","pad_5","pad_6","pad_7","pad_8","pad_9")
+    
+    local TeleportFunc=0
+    #ifdef entity:teleport(vector)
+        addCommand("goto","cgoto","Permet de se teleporter a un joueur.","player")
+        addCommand("tp","ctp","Permet de teleporter un joueur a vous.","none")
+        addCommand("sethome","csethome","Place un home a votre position.","none")
+        addCommand("send","csend","Permet de teleporter un joueur a un autre joueur","none")
+        addCommand("delhome","cdelhome","Supprime le home <args1>.","none")
+        addCommand("home","chome","Vous teleport au home <args1>.","none")
+        addCommand("homes","chomes","Affiche la liste de tout vos homes.","none")
+        addCommand("return","creturn","Vous teleporte la ou vous etiez.","none")
+        addCommand("hide","chide","Permet d'activer/desactiver l'affichage des commandes dans le chat.","none")
+        addCommand("j","cjump","Permet de se teleporter la ou vous regarder.","pos")
+        addCommand("setspawn","csetspawn","Permet de set son propre spawn","pos")
+        addCommand("delspawn","cdelspawn","Permet de suprimer le setspawn","pos")
+        addCommand("autorespawn","cautorespawn","Permet de respawn automatiquement","none")
+        TeleportFunc=1
+    #endif
+    #ifdef entity:setPos(vector)
+        if(!TeleportFunc) {
+            addCommand("goto","cgoto","Permet de se teleporter a un joueur.","player")
+            addCommand("tp","ctp","Permet de teleporter un joueur a vous.","none")
+            addCommand("sethome","csethome","Place un home a votre position.","none")
+            addCommand("send","csend","Permet de teleporter un joueur a un autre joueur","none")
+            addCommand("delhome","cdelhome","Supprime le home <args1>.","none")
+            addCommand("home","chome","Vous teleport au home <args1>.","none")
+            addCommand("homes","chomes","Affiche la liste de tout vos homes.","none")
+            addCommand("return","creturn","Vous teleporte la ou vous etiez.","none")
+            addCommand("hide","chide","Permet d'activer/desactiver l'affichage des commandes dans le chat.","none")
+            addCommand("j","cjump","Permet de se teleporter la ou vous regarder.","pos")
+            addCommand("setspawn","csetspawn","Permet de set son propre spawn","pos")
+            addCommand("delspawn","cdelspawn","Permet de suprimer le setspawn","pos")
+            addCommand("autorespawn","cautorespawn","Permet de respawn automatiquement","none")
+        }
+    #endif
+    addCommand("freeze","cfreeze","Permet de freeze hors noclip un joueur","none")
+    #ifdef entity:plyFreeze(number)
+        addCommand("superfreeze","csuperfreeze","Permet de freeze un joueur meme si il noclip","none")
+    #endif
+    addCommand("unfreeze","cunfreeze","Permet de unfreeze un joueur","none")
+    addCommand("slay","cslay","Permet de tuer un joueur","player")
+    addCommand("help","chelp","affiches toutes les commandes et leurs informations.","none")
+    addCommand("info","cinfo","affiches des informations sur un joueurs.","player")
+    JumpKey = "mouse_middle"
+    addCommand("blind","cblind","Permet d'aveugler un joueur.","player")
+    addCommand("unblind","cunblind","Permet d'aretter l'aveuglement sur un joueur.","player")
+    #ifdef chatPrint(entity,...)
+    addCommand("pm","cpm","Permet d'envoyer un message priver a un joueur.","none")
+    #endif
+    #ifdef entity:plyGod(number)
+    addCommand("god","cgod","Permet de mettre un joueur invincible","player")
+    #endif
+    #ifdef entity:plyNoclip(number)
+    addCommand("noclip","cnoclip","Permet de mettre le noclip a un joueur","player")
+    #endif
+    #ifdef entity:plySetHealth(number)
+    addCommand("seth","csethealth","Permet de set la vie d'un joueur","none")
+    #endif
+    #ifdef entity:plySetArmor(number)
+    addCommand("seta","csetarmor","Permet de set l'armure d'un joueur","none")
+    #endif
+    #ifdef entity:plySetSpeed(number)
+    addCommand("sets","csetspeed","Permet de set le speed d'un joueur","none")
+    #endif
+    #ifdef entity:plyExitVehicle()
+    addCommand("exit","cexit","Permet d'exclure un joueur d'un vehicule","none")
+    #endif
+    #ifdef entity:plySpawn()
+    addCommand("spawn","cspawn","Permet de faire respawn un joueur","none")
+    #endif
+    #ifdef entity:plySetGravity(number)
+    addCommand("setg","csetgravity","Permet de set la gravite d'un joueur","none")
+    #endif
+    addCommand("s","cselect","Permet de selectioner un joueurs","none")
+    addCommand("slap","cslap","Permet de slap un joueur","player")
+    addCommand("invisible","cinvisible","Permet de devenir invisible","none")
+    addCommand("jail","cjail","Permet de jail un joueur","player")
+    addCommand("unjail","cunjail","Permet de unjail un joueur","player")
+    loadIndex("game","moreulx")
+}
+
+
+
+
+
+
+if(WaitForFile){
+    if(clk("RetryFile")){ #case if file load failed
+        if(fileCanLoad()){
+            #if can load load the file
+            fileLoad(FileNameForRetry)
+            runOnFile(1)
+        }elseif(RetryFile < MaxRetry){
+            #RetryFile if nessecesary
+            RetryFile++
+            print("Cant load file RetryFile in "+TimeToRetry)
+            timer("RetryFile",TimeToRetry)
+        }else{
+            print("save failed after "+RetryFile+" RetryFile")
+            ContentAvaliableFile=1
+            Content=""
+        }
+    }elseif(fileClk()){ #case if file load is finished
+        if(fileLoaded()){
+            #reset all a set the ContentFile and ContentAvaliableFile
+            ContentFile = fileRead()
+            ContentAvaliableFile=1
+            WaitForFile=0
+            RetryFile=0
+            FileNameForRetry=""
+        }else{
+            print("file load failed : "+fileStatus())
+            ContentAvaliableFile=1
+            Content=""
+        }
+    }elseif(clk("timedout")){
+        if(fileStatus()!=_FILE_OK){
+            #print("File load failed: "+fileStatus())
+            ContentAvaliableFile=1
+            Content=""
+        }
+    }
+}
+
+
+
+
+
+
+
+if(WaitHTTP){
+    if(clk("retry")){#case if retry
+        if(httpCanRequest()){
+            #request if can
+            httpRequest(RetryUrl)
+            runOnHTTP(1)
+        }elseif(Retry < NbOfRetry){
+            #retry if can
+            Retry++
+            timer("retry",RetryTime)
+            print("Failed, retry in "+RetryTime)
+        }else{
+            #print an error
+            print("Failed, after "+Retry +" retry.")
+            ContentAvaliable=1
+            Content="-1"
+        }
+    }elseif(httpClk()){#case if http is requested
+        WaitHTTP=0
+        FuncHttp(httpData())#call the good function
+    }
+}
+
+
+
+
+
+if(Loaded){
+    if(WaitUpdate & httpClk()) {
+        local New = httpData()
+        message(array(owner(),Constantes["NormalTextColor",vector],"Code telecharger, instalation du code."))
+        entity():remoteSetCode(New)
+    }
+    if(clk("respawn")){
+        owner():plySpawn()
+        owner():move(ReturnPos)
+    } elseif(clk("removeProp")){
+        SlayProp:propDelete()
+    } elseif(clk("finishJail")){
+        JailProps[TempPlayer:name(),table][2,entity] = propSpawn("models/props_building_details/Storefront_Template001a_Bars.mdl",TempPlayer:pos()+vec(0,40,60),1)
+        JailProps[TempPlayer:name(),table][2,entity]:setAng(ang(0,90,0))
+        JailProps[TempPlayer:name(),table][3,entity] = propSpawn("models/props_building_details/Storefront_Template001a_Bars.mdl",TempPlayer:pos()+vec(0,-40,60),1)
+        JailProps[TempPlayer:name(),table][3,entity]:setAng(ang(0,90,0))
+        timer("finishTopJail",100)
+    }elseif(clk("finishTopJail")){
+        JailProps[TempPlayer:name(),table][4,entity] = propSpawn("models/props_building_details/Storefront_Template001a_Bars.mdl",TempPlayer:pos()+vec(0,0,100),1)
+        JailProps[TempPlayer:name(),table][4,entity]:setAng(ang(90,0,0))
+    }
+    #ifdef deathClk() && lastDeath()
+    if(deathClk() & lastDeath():id() == owner():id()){
+    #else
+    if(0){
+    #endif
+        ReturnPos=owner():pos()
+        if(SpawnPos!=vec(0,0,0) & !Dead){
+            Dead=1
+        }
+        if(AutoRespawnActive){
+            timer("respawn",100)
+        }
+    }elseif(chatClk()){
+        if(owner():lastSaid():index(1)==":" && chatClk(owner())){
+            for(I=1,Command:count()){
+                Args = lastSaid():explode(" ")
+                Label = Args[1,string]:sub(2,Args[1,string]:length()+1)
+                Args:shift()
+                if(Command[I,table]["label",string]:lower()==Label:lower()){
+                    Command[I,table]["function",string](Args)
+                    hideChat(Hide)
+                }
+            }
+            if(BlindPlayer:count()!=0){
+                local Vals=BlindPlayer:values()
+                for(I=1,Vals:count()){
+                    if(!Vals[I,entity]:isPlayer()){
+                        holoDelete(Vals[I,entity]:id())
+                        BlindPlayer:remove(Vals[I,entity]:id())
+                    }
+                }
+            }
+        }
+    }elseif(Dead & owner():isAlive()){
+        Dead=0
+        local TeleportFunc=0
+        owner():move(SpawnPos)
+            
+    }
+    if(keyClk() & owner():keyPressed(JumpKey)){
+        cjump(array())   
+    }elseif(keyClk() & owner():keyPressed(HudKey)){
+        if(Hud){
+                if(owner():aimEntity():isPlayer()){
+                    HudMode = "player"
+                    hudPlayer(owner():aimEntity())
+                }else{
+                    hudChangeState()
+                    if(HudActive){
+                        HudMode = "pos"
+                        hudPos(owner():aimPos())
+                    }else{
+                        HudMode = ""
+                    }
+                }
+        }else{
+            message(array(owner(),Constantes["ErrorTextColor",vector] ,"Pas de Hud connecte."))
+        }
+    }elseif(keyClk() & HudMode!=""){
+        for(I=1,HudChoice:count()){
+            if(owner():keyPressed(HudChoice[I,string])){
+                runCommand(I,HudMode)
+                break
+            }
+        }
+    } elseif(keyClk() & Invisible) {
+        owner():weapon():setMaterial("effects/ar2_altfire1b")
+        owner():setMaterial("effects/ar2_altfire1b")
+    } elseif(keyClk() & !Invisible) {
+        owner():weapon():setMaterial("")
+        owner():setMaterial("")
+    }
+}elseif(isIndexLoaded()){
+    Version = "":getContent():toNumber()
+    if(Version == -1){
+        message(array(owner(),Constantes["ErrorTextColor",vector],"Erreur lors de la recuperation de la version"))
+    }
+    elseif(Version != Constantes["Version",number]){
+            message(array(owner(),Constantes["ErrorTextColor",vector],"------ Important ------"))
+            message(array(owner(),Constantes["ErrorTextColor",vector],"Votre version de more ulx n'est pas a jours."))
+            message(array(owner(),Constantes["ErrorTextColor",vector],"Pour la mettre a jours faites :update"))
+            message(array(owner(),Constantes["ErrorTextColor",vector],"-----------------------"))
+            
+            addCommand("update","cupdate","Permet de update votre more ulx","none")
+    }
+    loadFile(MapName+"_homes.txt")
+    message(array(owner(),Constantes["NormalTextColor",vector],"Chargement des Homes, veuillez patienter"))
+
+}elseif(isFileLoaded()){
+    Homes = Homes:getContentFile()
+    Loaded=1
+        message(array(owner(),Constantes["CorrectTextColor",vector],"Home charger."))
+        message(array(owner(),Constantes["NormalTextColor",vector],"faites \"",Constantes["CommandeTextColor",vector],":help",Constantes["NormalTextColor",vector],"\" pour voir la liste des commandes."))
+}

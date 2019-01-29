@@ -1,0 +1,190 @@
+@name [Mask of Envy] Sphere Protector
+@persist [O E P]:entity V:array Loaded Yolo:array Friends:array Size FileName:string PushForce Prefix:string [PrefixColor GreenText RedText]:vector
+@persist PlsSound:table
+interval(100)
+    
+entity():setAlpha(0)  
+entity():propNotSolid(1)
+entity():propShadow(0)
+
+
+
+if(first()) {
+    #You can change this
+    FileName = "sphere_protector_friends.txt"
+    PushForce = 500
+    Prefix = "[Sphere protect] "
+    PrefixColor = vec(0,161,255)
+    GreenText = vec(0,255,63)
+    RedText = vec(127,0,0)
+    PlsSound = table()
+    O = owner()
+    E = entity()
+    L = players()
+    Size = 1
+    Loaded = 0
+    runOnChat(1)
+
+    E:setAlpha(255)
+    holoCreate(1, E:pos())
+    holoCreate(2, E:pos())
+    holoCreate(3, E:pos()+vec(0,0,0))
+    holoModel(1, "hq_sphere")
+    holoModel(2, "hq_sphere")
+    holoModel(3, "hq_sphere")
+    holoAlpha(1,225)
+    holoAlpha(3,225)
+    holoMaterial(1, "models/XQM//LightLinesRed")
+    holoMaterial(3, "models/XQM//LightLinesRed")
+    holoMaterial(2, "models/shadertest/shader3")
+    holoScale(1, vec(-50*Size))
+    holoScale(2, vec(50*Size))
+    holoScale(3, vec(50*Size,50*Size,0))
+    holoParent(1, E)
+    holoParent(2, E)
+    holoParent(3, E)
+    
+    function entity:displayMessage(Color:vector, Message:string) {
+        local A = 0
+        #ifdef chatPrint(entity,...)
+            chatPrint(This, PrefixColor, Prefix, Color, Message)
+            A = 1
+        #endif
+        if(!A) {
+            #ifdef printColor(...)
+                printColor(PrefixColor, Prefix, Color, Message)
+            #else
+                print(Prefix, Message)
+            #endif
+        }
+    }
+    Friends = array()
+    if(fileCanLoad()){
+        fileLoad(FileName)
+        runOnFile(1)
+    }else {
+        O:displayMessage(RedText ,"Cant load files")
+    }
+    
+    function string array:join(String:string, StartIndex:number) {
+        local Ret = ""
+        for(I=StartIndex,This:count()) {
+            Ret += This[I,string] + String
+        }
+        Ret = Ret:sub(0,Ret:length()-String:length())
+        return Ret
+    }
+    
+    function number array:contains(String:string) {
+        
+        for(I=1,This:count()) {
+            if(This[I,string] == String) {
+                return I
+            }
+        }
+        return 0
+    }
+    
+    
+        
+}
+
+if(fileClk()) {
+    runOnFile(0)
+    Loaded = 1
+    if(fileLoaded()) {
+        Friends = vonDecode(fileRead())
+        O:displayMessage(GreenText,"Friends loaded : " + Friends:join(", ",1))
+    } else {
+        O:displayMessage(RedText,"Cant load friend file")
+    }
+}
+if(chatClk(O)) {
+    local Cmd = lastSaid():explode(" ")
+    if(Cmd:count() >= 2 & Cmd[1,string] == "!addf") {
+        local Name = Cmd:join(" ",2)
+        local Player = findPlayerByName(Name)
+        print("+"+Name+"+")
+        if(Player:isPlayer()) {
+            
+            local Index = Friends:contains(Player:steamID())
+            
+            if(Index == 0) {
+                Friends:pushString(Player:steamID())
+                fileWrite(FileName,vonEncode(Friends))
+                O:displayMessage(GreenText,Player:name()+" Added to friend list")
+            } else {
+                O:displayMessage(GreenText,Player:name()+" is allready in your friend list")
+            }
+        } else {
+            O:displayMessage(RedText,"Cant find player with name "+Name)
+        }
+        hideChat(1)
+    }
+    if(Cmd:count() >= 2 & Cmd[1,string] == "!delf") {
+        local Name = Cmd:join(" ",2)
+        local Player = findPlayerByName(Name)
+        if(Player:isPlayer()) {
+            local Index = Friends:contains(Player:steamID())
+            if(Index != 0) {
+                
+                Friends:remove(Index)
+                fileWrite(FileName,vonEncode(Friends))
+                O:displayMessage(GreenText,Player:name()+" removed to friend list")
+            } else {
+                O:displayMessage(GreenText,Player:name()+" is not in your friend list")
+            }
+        } else {
+            O:displayMessage(RedText,"Cant find player with name "+Name)
+        }
+        hideChat(1)
+    }
+}
+
+if(Loaded) {
+    A=findToArray()
+    findInSphere(E:pos(),320*Size)
+    findIncludeClass("player")
+    findIncludeClass("npc_*")
+    findIncludeClass("physics_*") 
+    findIncludeClass("prop_*") 
+    foreach(K,V:entity=A){
+        if(V:type() == "prop_physics_multiplayer" || V:type() == "prop_vehicle_prisoner_pod") {
+           continue
+        }
+        local Index = Friends:contains(V:steamID())
+        if( Index==0 & V:pos():distance(E:pos())<320*Size){
+            if(V:isPlayer()) {
+                local Pos = (V:pos()-E:pos()):normalized()*(320*Size+50)
+                V:plySetPos(E:pos() + Pos)
+                V:applyPlayerForce(Pos*PushForce)
+            } else {
+                Index = Friends:contains(V:owner():steamID())
+                if(Index ==0 ) {
+                    local Pos = (V:pos()-E:pos()):normalized()*(320*Size+50)
+                    V:plySetPos(E:pos() + Pos)
+                    V:applyForce(Pos*PushForce)
+                }
+            }
+        } elseif( V:pos():distance(E:pos())<320*Size) {
+            if(V:health()<200) {
+                if(!PlsSound:exists("antidote"+V:id())) {
+                    PlsSound["antidote"+V:id(),number]=1
+                    V:soundPlay("antidote"+V:id(),0,"hl1/fvox/automedic_on.wav")
+                }
+                V:plySetHealth(V:health()+1)
+            }
+            if(V:armor()<200) {
+                if(!PlsSound:exists("antidote"+V:id())) {
+                    PlsSound["antidote"+V:id(),number]=1
+                    V:soundPlay("antidote"+V:id(),0,"hl1/fvox/automedic_on.wav")
+                }
+                V:plySetArmor(V:armor()+1)
+            }
+            if(V:health()>=200 & V:armor()>=200 & PlsSound:exists("antidote"+V:id())) {
+                 PlsSound:remove("antidote"+V:id())
+                soundStop("antidote"+V:id())
+            }
+        }
+    }
+}

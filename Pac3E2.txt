@@ -1,0 +1,95 @@
+@name [Mask of Envy] Pac3E2
+@inputs 
+@outputs 
+@persist Time Time2 Ang I
+@trigger
+interval(1)
+
+entity():setAlpha(0)  
+entity():propNotSolid(1)
+entity():propShadow(0)
+
+Time+=2
+Time2+=2
+Ang++
+I++
+
+if(first()) {
+
+    
+    holoCreate(13) 
+    holoPos(13, owner():attachmentPos("eyes")) 
+    holoAng(13, owner():attachmentAng("eyes")) 
+    holoParentAttachment(13, owner(), "eyes" ) 
+    holoAlpha(13,0)
+    
+    holoCreate(16)
+    holoPos(16,holoEntity(13):pos() + holoEntity(13):up()*-4.2 + holoEntity(13):forward()*-4) 
+    holoAng(16, holoEntity(13):angles()) 
+    holoModel(16,"models/player/items/humans/top_hat.mdl")
+    holoScale(16,vec(1.3,1.3,1.3))
+    holoColor(16,vec(0,0,0))
+    holoParent(16,13)
+    holoDisableShading(16,1)
+    
+    holoCreate(17)
+    holoPos(17,holoEntity(13):pos() + holoEntity(13):up()*-4.2 + holoEntity(13):forward()*-4) 
+    holoAng(17, holoEntity(13):angles()) 
+    holoModel(17,"models/player/items/humans/top_hat.mdl")
+    holoMaterial(17,"models/wireframe")
+    holoScale(17,vec(1.3,1.3,1.3))
+    holoParent(17,13)
+    holoDisableShading(17,1)
+    
+    holoCreate(19)
+    holoPos(19,holoEntity(13):pos() + holoEntity(13):up() + holoEntity(13):forward()*-15) 
+    holoAng(19, holoEntity(13):angles()+ang(360,0,40)) 
+    holoModel(19,"models/props_c17/gravestone_cross001a.mdl")
+    holoScale(19,vec(0.3,0.3,0.3))
+    holoColor(19,vec(0,0,0))
+    holoParent(19,13)
+    holoDisableShading(19,1)
+    
+    holoCreate(20)
+    holoPos(20,holoEntity(13):pos() + holoEntity(13):up() + holoEntity(13):forward()*-15) 
+    holoAng(20, holoEntity(13):angles()+ang(360,0,40)) 
+    holoModel(20,"models/props_c17/gravestone_cross001a.mdl")
+    holoMaterial(20,"models/wireframe")
+    holoScale(20,vec(0.3,0.3,0.3))
+    holoParent(20,13)
+    holoDisableShading(20,1)
+    
+    holoCreate(23)
+    holoPos(23,holoEntity(16):pos() + holoEntity(16):up()*17 + holoEntity(16):forward()*0) 
+    holoAng(23, holoEntity(16):angles()+ang(180,0,0)) 
+    holoModel(23,"models/props_c17/metalladder002b.mdl")
+    holoMaterial(23,"")
+    holoScale(23,vec(0.4,0.4,0.4))
+    holoColor(23,vec(0,0,0))
+    holoParent(23,13)
+    holoDisableShading(23,1)
+    
+    holoCreate(244)
+    holoModel(244,"icosphere2")
+    holoScale(244,vec(1.58))
+    holoParentAttachment(244,owner(),"eyes")
+    holoPos(244,holoEntity(13):pos() + holoEntity(13):up()*30 + holoEntity(13):forward()*-10) 
+    holoAng(244,holoEntity(13):angles()+ang(0,0,0))
+    holoDisableShading(244,1)
+    
+    holoCreate(144)
+    holoModel(144,"hq_sphere")
+    holoScale(144,vec(1.5))
+    holoColor(144,vec(255,255,255))
+    holoParentAttachment(144,owner(),"eyes")
+    holoPos(144,holoEntity(13):pos() + holoEntity(13):up()*30 + holoEntity(13):forward()*-10) 
+    holoAng(144,holoEntity(13):angles()+ang(0,0,0)) 
+    holoDisableShading(144,1)
+}
+
+holoColor(17,hsv2rgb(I%360,1,1))
+holoColor(20,hsv2rgb(I%360,1,1))
+holoColor(244,hsv2rgb(I%360,1,1))
+holoAng(244,entity():eyeAngles()+ang(Ang,Ang,Ang))
+
+

@@ -1,0 +1,14 @@
+@name [Mask of Envy] Decals & Sounds
+@inputs 
+@outputs 
+@persist 
+@trigger
+interval(60000)
+
+entity():setAlpha(0)  
+entity():propNotSolid(1)
+entity():propShadow(0)
+
+concmd("ulx decals;ulx sounds")
+
+

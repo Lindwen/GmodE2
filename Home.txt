@@ -1,0 +1,28 @@
+@name [Mask of Envy] Home
+@inputs 
+@outputs 
+@persist 
+@trigger 
+
+entity():setAlpha(0)  
+entity():propNotSolid(1)
+entity():propShadow(0)
+
+O = owner()   
+if(first()){
+entity():setAlpha(0)   
+}
+runOnChat(1)
+
+
+
+if(chatClk(owner())){
+   
+    if(O:lastSaid():explode(" "):string(1):lower() == ":home"){
+        hideChat(1) 
+         O:teleport(entity():pos()+vec(0,0,10))
+            printColor(vec(255,0,0)," Vici ti mason ",vec(255,0,0))
+    }   
+}
+
+
